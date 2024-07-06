@@ -10,6 +10,7 @@ public class NumberChecker extends Thread {
     private Queue<String> toPrinting;
     private AtomicBoolean processed = new AtomicBoolean(true);
     private int semaphore = 1;
+    private final Object monitor = new Object();
 
     public NumberChecker(Queue<String> toPrinting, int maxNumber) {
         this.toPrinting = toPrinting;
@@ -21,25 +22,37 @@ public class NumberChecker extends Thread {
     }
 
     public void fizz() {
-        semaphore = 3;
-        processed.set(false);
+        synchronized (monitor) {
+            semaphore = 3;
+            processed.set(false);
+            monitor.notifyAll();
+        }
     }
 
     public void buzz() {
-        semaphore = 5;
-        processed.set(false);
+        synchronized (monitor) {
+            semaphore = 5;
+            processed.set(false);
+            monitor.notifyAll();
+        }
     }
 
     public void fizzbuzz() {
-        semaphore = 15;
-        processed.set(false);
+        synchronized (monitor) {
+            semaphore = 15;
+            processed.set(false);
+            monitor.notifyAll();
+        }
     }
 
     public void number() {
-        semaphore = 0;
-        processed.set(false);
-        while (toPrinting.size() != 0) {
-            System.out.println(toPrinting.poll());
+        synchronized (monitor) {
+            semaphore = 0;
+            processed.set(false);
+            monitor.notifyAll();
+            while (!toPrinting.isEmpty()) {
+                System.out.println(toPrinting.poll());
+            }
         }
     }
 
@@ -55,14 +68,15 @@ public class NumberChecker extends Thread {
     public void run() {
         int iterationCounter = 0;
         while (true) {
-            if (processed.get()) {
-                try {
-                    Thread.sleep(10);
-                } catch (InterruptedException e) {
-                    throw new RuntimeException(e);
+            synchronized (monitor) {
+                while (processed.get()) {
+                    try {
+                        monitor.wait();
+                    } catch (InterruptedException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
-                continue;
-            } else {
+
                 iterationCounter++;
                 if (semaphore == 3 && number % 3 == 0 && number % 5 != 0) {
                     answerWriter("fizz");
@@ -78,8 +92,9 @@ public class NumberChecker extends Thread {
                 }
                 processed.set(true);
                 semaphore = 1;
+
                 if (iterationCounter == maxNumber) {
-                    if (toPrinting.size() != 0) {
+                    if (!toPrinting.isEmpty()) {
                         System.out.println(toPrinting.poll());
                     }
                     break;
