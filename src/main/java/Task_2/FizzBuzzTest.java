@@ -3,42 +3,44 @@ package Task_2;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicInteger;
 
 public class FizzBuzzTest {
 
     static Queue<String> toPrinting = new ConcurrentLinkedQueue<>();
     static final int LIMIT = 50;
+    static AtomicInteger currentNumber = new AtomicInteger(1);
 
     public static void main(String[] args) {
 
-        for (int number = 1; number <= LIMIT; number++) {
-            final int currentNumber = number;
+        while (currentNumber.get() <= LIMIT) {
             CountDownLatch latch = new CountDownLatch(4);
+            final int number = currentNumber.getAndIncrement();
 
             Thread fizzThread = new Thread(() -> {
-                if (fizz(currentNumber)) {
+                if (fizz(number)) {
                     toPrinting.add("fizz");
                 }
                 latch.countDown();
             });
 
             Thread buzzThread = new Thread(() -> {
-                if (buzz(currentNumber)) {
+                if (buzz(number)) {
                     toPrinting.add("buzz");
                 }
                 latch.countDown();
             });
 
             Thread fizzBuzzThread = new Thread(() -> {
-                if (fizzBuzz(currentNumber)) {
+                if (fizzBuzz(number)) {
                     toPrinting.add("fizzbuzz");
                 }
                 latch.countDown();
             });
 
             Thread numberThread = new Thread(() -> {
-                if (!fizz(currentNumber) && !buzz(currentNumber) && !fizzBuzz(currentNumber)) {
-                    toPrinting.add(String.valueOf(currentNumber));
+                if (!fizz(number) && !buzz(number) && !fizzBuzz(number)) {
+                    toPrinting.add(String.valueOf(number));
                 }
                 latch.countDown();
             });
@@ -51,7 +53,6 @@ public class FizzBuzzTest {
             try {
                 latch.await();
             } catch (InterruptedException e) {
-                //noinspection CallToPrintStackTrace
                 e.printStackTrace();
             }
 
@@ -72,4 +73,3 @@ public class FizzBuzzTest {
         return n % 3 == 0 && n % 5 == 0;
     }
 }
-
